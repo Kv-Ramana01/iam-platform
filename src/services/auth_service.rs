@@ -1,14 +1,12 @@
-use crate::{models::user::{NewUser,RegisterRequest}, repositories::user_repository};
+use crate::{models::user::{LoginRequest, NewUser, RegisterRequest}, repositories::user_repository};
 
 use argon2::{
-    password_hash::{
-        rand_core::OsRng,
-        SaltString,
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::{
+        Error::Password, SaltString, rand_core::OsRng,
     },
-    Argon2,
-    PasswordHasher,
 };
 
+use serde::de::value;
 use uuid::Uuid;
 
 use sqlx::PgPool;
@@ -60,4 +58,37 @@ pub async fn register_user(
 
     println!("User inserted!");
    
+}
+
+pub async fn login_user(
+    pool: &PgPool,
+    request: LoginRequest,
+) {
+    if request.email.trim().is_empty() {
+        println!("Email cannot be empty");
+        return;
+    }
+
+    if request.password.trim().is_empty() {
+        println!("Password cannot be empty");
+        return;
+    }
+
+    let information = user_repository::find_user_by_email(pool, &request.email).await.unwrap();
+
+    match information {
+        Some(user) => {
+            let parsed_hash = PasswordHash::new(&user.password_hash).unwrap();
+
+            let valid = Argon2::default()
+            .verify_password(request.password.as_bytes(), &parsed_hash).is_ok();
+
+            if !valid {
+                println!("Invalid credentials");
+                return;
+            }
+            println!("Login Successful");
+        },
+        None => println!("User does not exist!"),
+    }
 }

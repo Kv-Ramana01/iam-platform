@@ -10,4 +10,6 @@ pub fn create_router() -> Router<AppState> {
     Router::new()
     .route("/",get(auth_handler::root))
     .route("/auth/register", post(auth_handler::register))
+    .route(
+        "/auth/login", get(auth_handler::login))
 }

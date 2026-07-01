@@ -1,6 +1,6 @@
-use axum::{extract::{Json, State}, http::StatusCode};
+use axum::{extract::{Json, State}, http::{StatusCode, request}};
 
-use crate::state::{AppState};
+use crate::{models::user::LoginRequest, state::AppState};
 use crate::models::user::RegisterRequest;
 use crate::services::auth_service;
 
@@ -14,6 +14,16 @@ pub async fn register(
 ) -> StatusCode {
     
     auth_service::register_user(&state.pool,request).await;
+
+    StatusCode::CREATED
+}
+
+pub async fn login(
+    State(state): State<AppState>,
+    Json(request): Json<LoginRequest>,
+) -> StatusCode {
+
+    auth_service::login_user(&state.pool,request).await;
 
     StatusCode::CREATED
 }
