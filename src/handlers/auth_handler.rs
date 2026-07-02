@@ -1,16 +1,25 @@
-use axum::{extract::{Json, State}, http::{StatusCode, request}};
+use axum::{
+    extract::{Json, State},
+    http::StatusCode,
+    Extension,
+};
 use uuid::Uuid;
 
-use crate::{models::{organization::{self, CreateOrganizationRequest}, user::LoginRequest}, state::{self, AppState}};
-use crate::models::user::RegisterRequest;
-use crate::models::role::*;
-use crate::services::auth_service;
-use crate::models::permission::CreatePermissionRequest;
+use crate::{
+    auth::jwt::Claims,
+    models::{
+        membership::*,
+        organization::CreateOrganizationRequest,
+        permission::CreatePermissionRequest,
+        role::*,
+        role_permission::*,
+        user::{LoginRequest, RegisterRequest},
+    },
+    services::auth_service,
+    state::AppState,
+};
 
-use axum::Extension;
-use crate::auth::jwt::Claims;
-
-pub async fn root() -> &'static str{
+pub async fn root() -> &'static str {
     "Hello from IAM Backend!"
 }
 
@@ -18,10 +27,8 @@ pub async fn register(
     State(state): State<AppState>,
     Json(request): Json<RegisterRequest>,
 ) -> StatusCode {
-    
-    auth_service::register_user(&state.pool,request).await;
 
-    StatusCode::CREATED
+    auth_service::register_user(&state.pool, request).await
 }
 
 pub async fn login(
@@ -29,14 +36,13 @@ pub async fn login(
     Json(request): Json<LoginRequest>,
 ) -> StatusCode {
 
-    auth_service::login_user(&state.pool,request).await;
-
-    StatusCode::CREATED
+    auth_service::login_user(&state.pool, request).await
 }
 
 pub async fn me(
     Extension(claims): Extension<Claims>,
 ) -> String {
+
     format!(
         "User ID: {}\nSession ID: {}",
         claims.sub,
@@ -48,69 +54,78 @@ pub async fn create_organization(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Json(request): Json<CreateOrganizationRequest>,
-) {
+) -> StatusCode {
+
     let user_id = Uuid::parse_str(&claims.sub).unwrap();
 
-    auth_service::create_organization(&state.pool, user_id, request).await;
+    auth_service::create_organization(
+        &state.pool,
+        user_id,
+        request,
+    )
+    .await
 }
 
 pub async fn create_role(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Json(request): Json<CreateRoleRequest>,
-) {
+) -> StatusCode {
+
     let user_id = Uuid::parse_str(&claims.sub).unwrap();
 
-    auth_service::create_role(&state.pool,user_id, request).await;
+    auth_service::create_role(
+        &state.pool,
+        user_id,
+        request,
+    )
+    .await
 }
 
 pub async fn create_permission(
     State(state): State<AppState>,
     Extension(_claims): Extension<Claims>,
     Json(request): Json<CreatePermissionRequest>,
-) {
+) -> StatusCode {
+
     auth_service::create_permission(
         &state.pool,
         request,
     )
-    .await;
+    .await
 }
-
-use crate::models::role_permission::*;
 
 pub async fn assign_permission(
     State(state): State<AppState>,
     Extension(_claims): Extension<Claims>,
     Json(request): Json<AssignPermissionRequest>,
-) {
+) -> StatusCode {
 
     auth_service::assign_permission(
         &state.pool,
         request,
     )
-    .await;
+    .await
 }
-
-use crate::models::membership::*;
 
 pub async fn create_membership(
     State(state): State<AppState>,
     Extension(_claims): Extension<Claims>,
     Json(request): Json<CreateMembershipRequest>,
-) {
+) -> StatusCode {
 
     auth_service::create_membership(
         &state.pool,
         request,
     )
-    .await;
+    .await
 }
 
-//testing purposes
+// Temporary testing endpoint
 pub async fn check_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-) {
+) -> StatusCode {
 
     let user_id = Uuid::parse_str(&claims.sub).unwrap();
 
@@ -126,4 +141,6 @@ pub async fn check_permission(
     .await;
 
     println!("Allowed: {}", allowed);
+
+    StatusCode::OK
 }

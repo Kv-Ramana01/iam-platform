@@ -19,26 +19,25 @@ use crate::{
     repositories::permission_repository,
 };
 
+use axum::http::StatusCode;
+
 pub async fn register_user(
     pool: &PgPool,
     request: RegisterRequest,
-) {
+) -> StatusCode {
      //algorithm
     //email normalisation, pasword hashing, uuid generation, newuser creation, calling repo for the db commmunication , return success
 
     if request.name.trim().is_empty() {
-        println!("Name cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     if request.email.trim().is_empty() {
-        println!("Email cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     if request.password.trim().is_empty() {
-        println!("Password cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     //normalizing the email format here
@@ -65,22 +64,23 @@ pub async fn register_user(
     user_repository::create_user(pool, new_user).await.unwrap();
 
     println!("User inserted!");
+
+    StatusCode::CREATED
    
 }
 
 pub async fn login_user(
     pool: &PgPool,
     request: LoginRequest,
-) {
+) -> StatusCode {
     if request.email.trim().is_empty() {
-        println!("Email cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     if request.password.trim().is_empty() {
-        println!("Password cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
+
 
     let information = user_repository::find_user_by_email(pool, &request.email).await.unwrap();
 
@@ -93,7 +93,7 @@ pub async fn login_user(
 
             if !valid {
                 println!("Invalid credentials");
-                return;
+                return StatusCode::UNAUTHORIZED;
             }
             let session = Session {
                 id: Uuid::new_v4(),
@@ -111,9 +111,11 @@ pub async fn login_user(
             );
 
             println!("{}",token);
+            StatusCode::OK
                     
         },
-        None => println!("User does not exist!"),
+        None => {println!("User does not exist!");
+        StatusCode::UNAUTHORIZED},
     }
 }
 
@@ -121,10 +123,10 @@ pub async fn create_organization(
     pool: &PgPool,
     user_id: Uuid,
     request: CreateOrganizationRequest,
-) {
+) -> StatusCode{
     if request.name.trim().is_empty() {
         println!("Organization name cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     let organization_id = Uuid::new_v4();
@@ -171,6 +173,7 @@ pub async fn create_organization(
         pool, membership).await.unwrap();
 
     println!("Organization created successfully!");
+    StatusCode::CREATED
 
 
 }
@@ -180,17 +183,17 @@ pub async fn create_role(
     pool: &PgPool,
     user_id: Uuid,
     request: CreateRoleRequest,
-) {
+) -> StatusCode{
     let allowed = has_permission(pool, user_id, request.organization_id, "create_role").await;
 
     if !allowed {
     println!("Permission denied!");
-    return;
+    return StatusCode::FORBIDDEN;
     }
 
     if request.name.trim().is_empty() {
         println!("Role name cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     let role_id = Uuid::new_v4();
@@ -203,17 +206,19 @@ pub async fn create_role(
     };
 
     role_repository::create_role(pool, role).await.unwrap();
+    println!("Role created.");
+    StatusCode::CREATED
 
 }
 
 pub async fn create_permission(
     pool: &PgPool,
     request: CreatePermissionRequest,
-) {
+) -> StatusCode {
 
     if request.name.trim().is_empty() {
         println!("Permission name cannot be empty");
-        return;
+        return StatusCode::BAD_REQUEST;
     }
 
     let permission = NewPermission {
@@ -230,6 +235,7 @@ pub async fn create_permission(
     .unwrap();
 
     println!("Permission created!");
+    StatusCode::CREATED
 }
 
 use crate::models::role_permission::*;
@@ -238,7 +244,7 @@ use crate::repositories::role_permission_repository;
 pub async fn assign_permission(
     pool: &PgPool,
     request: AssignPermissionRequest,
-) {
+) -> StatusCode{
 
     let role_permission = NewRolePermission {
         role_id: request.role_id,
@@ -253,6 +259,8 @@ pub async fn assign_permission(
     .unwrap();
 
     println!("Permission assigned!");
+
+    StatusCode::CREATED
 }
 
 use crate::models::membership::*;
@@ -261,7 +269,7 @@ use crate::repositories::membership_repository;
 pub async fn create_membership(
     pool: &PgPool,
     request: CreateMembershipRequest,
-) {
+) -> StatusCode {
 
     let membership = NewMembership {
         id: Uuid::new_v4(),
@@ -278,6 +286,8 @@ pub async fn create_membership(
     .unwrap();
 
     println!("Membership created!");
+
+    StatusCode::CREATED
 }
 
 pub async fn has_permission(
