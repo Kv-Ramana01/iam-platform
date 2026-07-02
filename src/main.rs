@@ -4,6 +4,8 @@ mod services;
 mod config;
 mod models;
 mod repositories;
+mod auth;
+mod middleware;
 
 mod state;
 //dependencies : uuid for assigning globally unique ids to users
@@ -21,7 +23,7 @@ async fn main() {
         pool,
     };
     
-    let app = routes::create_router().with_state(state);
+    let app = routes::create_router(state);
 
     axum::serve(listener, app).await.unwrap();
 

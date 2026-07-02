@@ -4,6 +4,10 @@ use crate::{models::user::LoginRequest, state::AppState};
 use crate::models::user::RegisterRequest;
 use crate::services::auth_service;
 
+
+use axum::Extension;
+use crate::auth::jwt::Claims;
+
 pub async fn root() -> &'static str{
     "Hello from IAM Backend!"
 }
@@ -26,4 +30,14 @@ pub async fn login(
     auth_service::login_user(&state.pool,request).await;
 
     StatusCode::CREATED
+}
+
+pub async fn me(
+    Extension(claims): Extension<Claims>,
+) -> String {
+    format!(
+        "User ID: {}\nSession ID: {}",
+        claims.sub,
+        claims.sid,
+    )
 }

@@ -1,14 +1,13 @@
-use crate::{models::user::{LoginRequest, NewUser, RegisterRequest}, repositories::user_repository};
-
+use crate::{models::{session::Session, user::{LoginRequest, NewUser, RegisterRequest}}, repositories::user_repository};
+use crate::repositories::session_repository;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::{
         Error::Password, SaltString, rand_core::OsRng,
     },
 };
-
-use serde::de::value;
+use chrono::{Duration, Utc};
 use uuid::Uuid;
-
+use crate::auth::jwt;
 use sqlx::PgPool;
 
 pub async fn register_user(
@@ -87,7 +86,23 @@ pub async fn login_user(
                 println!("Invalid credentials");
                 return;
             }
-            println!("Login Successful");
+            let session = Session {
+                id: Uuid::new_v4(),
+                user_id:user.id,
+                created_at: Utc::now(),
+                expires_at: Utc::now() + Duration::hours(24),
+                is_active: true,
+            };
+
+            session_repository::create_session(pool, &session).await.unwrap();
+
+            let token = jwt::generate_token(
+                user.id.to_string(),
+                session.id.to_string(),
+            );
+
+            println!("{}",token);
+                    
         },
         None => println!("User does not exist!"),
     }
