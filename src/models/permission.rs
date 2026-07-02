@@ -1,0 +1,23 @@
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use serde::Deserialize;
+
+#[derive(sqlx::FromRow)]
+pub struct Permission {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize)]
+pub struct CreatePermissionRequest {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+pub struct NewPermission {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+}

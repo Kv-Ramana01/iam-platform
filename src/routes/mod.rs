@@ -15,6 +15,24 @@ pub fn create_router(
     state: AppState,
 ) -> Router {
     let protected_routes = Router::new().route("/users/me", get(auth_handler::me))
+    .route("/organizations", post(auth_handler::create_organization))
+    .route("/roles", post(auth_handler::create_role))
+    .route(
+    "/permissions",
+    post(auth_handler::create_permission),
+)
+    .route(
+    "/roles/permissions",
+    post(auth_handler::assign_permission),
+)
+    .route(
+    "/memberships",
+    post(auth_handler::create_membership),
+)
+    .route(
+    "/check",
+    get(auth_handler::check_permission),
+)
     .route_layer(
         middleware::from_fn_with_state(
             state.clone(), auth_middleware::auth),
