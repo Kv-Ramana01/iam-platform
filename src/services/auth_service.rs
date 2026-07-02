@@ -178,8 +178,16 @@ pub async fn create_organization(
 
 pub async fn create_role(
     pool: &PgPool,
+    user_id: Uuid,
     request: CreateRoleRequest,
 ) {
+    let allowed = has_permission(pool, user_id, request.organization_id, "create_role").await;
+
+    if !allowed {
+    println!("Permission denied!");
+    return;
+    }
+
     if request.name.trim().is_empty() {
         println!("Role name cannot be empty");
         return;

@@ -61,7 +61,7 @@ pub async fn create_role(
 ) {
     let user_id = Uuid::parse_str(&claims.sub).unwrap();
 
-    auth_service::create_role(&state.pool, request).await;
+    auth_service::create_role(&state.pool,user_id, request).await;
 }
 
 pub async fn create_permission(
