@@ -1,10 +1,11 @@
 use sqlx::PgPool;
 use crate::models::role::*;
+use uuid::Uuid;
 
 pub async fn create_role(
     pool: &PgPool,
     role: NewRole,
-) -> Result<(), sqlx::Error> {
+) -> Result<Uuid, sqlx::Error> {
     sqlx::query(
         r#"
             INSERT into roles (
@@ -27,5 +28,5 @@ pub async fn create_role(
 .execute(pool)
 .await?;
 
-Ok(())
+Ok(role.id)
 }

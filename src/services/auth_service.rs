@@ -137,6 +137,41 @@ pub async fn create_organization(
 
     organization_repository::create_organization(pool, organization,).await.unwrap();
 
+    let owner_role = NewRole {
+        id: Uuid::new_v4(),
+        organization_id,
+        name: "Owner".to_string(),
+        description: Some("Organization Owner".to_string()),
+    };
+
+    let owner_role_id = role_repository::create_role(
+        pool, owner_role,).await.unwrap();
+
+    let permissions = 
+    permission_repository::get_all_permissions(pool).await
+    .unwrap();
+
+    for permission in permissions {
+        let role_permission = NewRolePermission {
+            role_id: owner_role_id,
+            permission_id: permission.id,
+        };
+
+        role_permission_repository::assign_permission(pool, role_permission).await.unwrap();
+    }
+
+    let membership = NewMembership {
+        id: Uuid::new_v4(),
+        user_id,
+        organization_id,
+        role_id: owner_role_id,
+    };
+
+    membership_repository::create_membership(
+        pool, membership).await.unwrap();
+
+    println!("Organization created successfully!");
+
 
 }
 

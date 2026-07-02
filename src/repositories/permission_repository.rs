@@ -29,3 +29,19 @@ pub async fn create_permission(
 
     Ok(())
 }
+
+use crate::models::permission::*;
+
+pub async fn get_all_permissions(
+    pool: &PgPool,
+) -> Result<Vec<Permission>, sqlx::Error> {
+
+    sqlx::query_as::<_, Permission>(
+        r#"
+        SELECT *
+        FROM permissions
+        "#
+    )
+    .fetch_all(pool)
+    .await
+}
